@@ -1,3 +1,126 @@
+/**
+ * @swagger
+ * /api/posts/{id}:
+ *   get:
+ *     tags:
+ *       - Posts
+ *     summary: Returns post by id
+ *     description: Returns a post by its ID.
+ *     operationId: getPost
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: A post
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccessPost'
+ *       '400':
+ *         description: Invalid post ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseError'
+ *       '404':
+ *         description: Post does not exist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseError'
+ *       '500':
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseError'
+ *   put:
+ *     tags:
+ *       - Posts
+ *     summary: Updates post by id
+ *     description: Updates a post by its ID.
+ *     operationId: updatePost
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       description: The post data to update
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdatePost'
+ *       required: true
+ *     responses:
+ *       '200':
+ *         description: Updated post
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccessPost'
+ *       '400':
+ *         description: Invalid post ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseError'
+ *       '404':
+ *         description: Post does not exist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseError'
+ *       '500':
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseError'
+ *   delete:
+ *     tags:
+ *       - Posts
+ *     summary: Deletes post by id
+ *     description: Deletes a post by its ID.
+ *     operationId: deletePost
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Deleted post
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccessPost'
+ *       '400':
+ *         description: Invalid post ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseError'
+ *       '404':
+ *         description: Post does not exist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseError'
+ *       '500':
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseError'
+ */
+
 import { connectToDatabase } from "@/lib/mongodb";
 import Post, { IPostJson, IUpdatePostDto } from "@/models/Post";
 

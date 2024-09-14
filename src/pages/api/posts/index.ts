@@ -1,3 +1,70 @@
+/**
+ * @swagger
+ * /api/posts:
+ *   get:
+ *     tags:
+ *       - Posts
+ *     summary: Returns list of posts
+ *     description: Returns a list of posts.
+ *     operationId: listPosts
+ *     parameters:
+ *       - name: title
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - name: content
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: List of posts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccessPostArray'
+ *       '500':
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseError'
+ *   post:
+ *     tags:
+ *       - Posts
+ *     summary: Adds new post
+ *     description: Adds a new post.
+ *     operationId: addPost
+ *     requestBody:
+ *       description: The post to create
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreatePost'
+ *       required: true
+ *     responses:
+ *       '201':
+ *         description: Post created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccessPost'
+ *       '400':
+ *         description: Invalid input
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseError'
+ *       '500':
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseError'
+ * */
+
 import queryString from "query-string";
 import { RootFilterQuery } from "mongoose";
 
