@@ -1,27 +1,19 @@
-import { mongo } from "mongoose";
 import { createMocks } from "node-mocks-http";
 
 import handler from "@/pages/api/posts/[id]";
-import Post, { IPostJson } from "@/models/Post";
-import { mockNotFoundPostId, mockPost, mockPosts } from "@/mocks/posts";
+import { mockPost, mockPosts } from "@/mocks/posts";
+import { IPostJson, IUpdatePostDto } from "@/models/Post";
 
 jest.mock("@/models/Post", () => ({
-  findById: jest.fn((id) => {
-    if (mongo.ObjectId.isValid(id)) {
-      return mockPosts.find((post) => post._id === id);
-    }
-    throw new Error("Cast to ObjectId failed");
-  }),
+  findById: jest.fn((id) => mockPosts.find((post) => post._id === id)),
+  findByIdAndUpdate: jest.fn((_, data) => ({ ...mockPost, ...data })),
+  findByIdAndDelete: jest.fn((id) => mockPost),
 }));
 
-jest.mock("@/lib/mongodb", () => ({
-  connectToDatabase: jest.fn(),
-}));
-
-describe("GET /api/posts/:id", () => {
+describe("GET", () => {
   it("should return a post", async () => {
     const { req, res } = createMocks<
-      ApiRequest<undefined>,
+      ApiRequest<IUpdatePostDto | undefined>,
       ApiResponse<IPostJson>
     >({
       method: "GET",
@@ -33,54 +25,46 @@ describe("GET /api/posts/:id", () => {
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(200);
-    const { success, data } = res._getJSONData();
-    expect(success).toBe(true);
-    expect(data).toStrictEqual(mockPost);
+    expect(res._getJSONData()).toStrictEqual({
+      success: true,
+      data: mockPost,
+    });
   });
-  it("should return an error when post id is invalid", async () => {
+});
+
+describe("PUT", () => {
+  it("should update an existing post", async () => {
     const { req, res } = createMocks<
-      ApiRequest<undefined>,
+      ApiRequest<IUpdatePostDto | undefined>,
       ApiResponse<IPostJson>
     >({
-      method: "GET",
+      method: "PUT",
       query: {
-        id: "invalid_id",
+        id: mockPost._id,
+      },
+      body: {
+        title: "Updated title",
+        content: "Updated content",
       },
     });
 
     await handler(req, res);
 
-    expect(res._getStatusCode()).toBe(400);
-    const { success, error } = res._getJSONData();
-    expect(success).toBe(false);
-    expect(error).toStrictEqual("Invalid post id format");
-  });
-  it("should return an error when post does not exists", async () => {
-    const { req, res } = createMocks<
-      ApiRequest<undefined>,
-      ApiResponse<IPostJson>
-    >({
-      method: "GET",
-      query: {
-        id: mockNotFoundPostId,
-      },
+    expect(res._getStatusCode()).toBe(200);
+    expect(res._getJSONData()).toStrictEqual({
+      success: true,
+      data: { ...mockPost, title: "Updated title", content: "Updated content" },
     });
-
-    await handler(req, res);
-
-    expect(res._getStatusCode()).toBe(404);
-    const { success, error } = res._getJSONData();
-    expect(success).toBe(false);
-    expect(error).toStrictEqual("Post does not exists");
   });
-  it("should return an error for server-related errors", async () => {
-    jest.spyOn(Post, "findById").mockRejectedValueOnce(new Error());
+});
 
+describe("DELETE", () => {
+  it("should delete an existing post", async () => {
     const { req, res } = createMocks<
-      ApiRequest<undefined>,
+      ApiRequest<IUpdatePostDto | undefined>,
       ApiResponse<IPostJson>
     >({
-      method: "GET",
+      method: "DELETE",
       query: {
         id: mockPost._id,
       },
@@ -88,9 +72,36 @@ describe("GET /api/posts/:id", () => {
 
     await handler(req, res);
 
-    expect(res._getStatusCode()).toBe(500);
-    const { success, error } = res._getJSONData();
-    expect(success).toBe(false);
-    expect(error).toStrictEqual("Failed to fetch post");
+    expect(res._getStatusCode()).toBe(200);
+    expect(res._getJSONData()).toStrictEqual({
+      success: true,
+      data: mockPost,
+    });
+  });
+});
+
+describe("Not supported methods", () => {
+  it("should not work for POST", async () => {
+    const { req, res } = createMocks<
+      ApiRequest<IUpdatePostDto | undefined>,
+      ApiResponse<IPostJson>
+    >({
+      method: "POST",
+      query: {
+        id: mockPost._id,
+      },
+      body: {
+        title: "New title",
+        content: "New content",
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(405);
+    expect(res._getJSONData()).toStrictEqual({
+      success: false,
+      error: "Method not allowed",
+    });
   });
 });

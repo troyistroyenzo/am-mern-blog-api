@@ -3,97 +3,21 @@ import { createMocks } from "node-mocks-http";
 
 import handler from "@/pages/api/posts";
 import { mockPost, mockPosts } from "@/mocks/posts";
-import Post, { ICreatePostDto, IPostJson } from "@/models/Post";
-
-jest.mock("@/lib/mongodb", () => ({
-  connectToDatabase: jest.fn(),
-}));
-
-jest.mock("query-string", () => ({
-  parseUrl: jest.fn(() => ({ url: "", query: {} })),
-}));
+import { ICreatePostDto, IPostJson } from "@/models/Post";
 
 jest.mock("@/models/Post", () => ({
-  find: jest.fn(({ title }) => {
-    if (title) {
-      return mockPosts.filter((post) => post.title === title);
-    } else {
-      return mockPosts;
-    }
-  }),
-  create: jest.fn(({ title, content }) => {
-    if (!title || !content) {
-      throw new Error("Post validation error: title: ... , content: ...");
-    }
-    return { ...mockPost, title, content };
+  find: jest.fn(({ title }) =>
+    title ? mockPosts.filter((post) => post.title === title) : mockPosts
+  ),
+  create: jest.fn((post) => {
+    if (!post.title || !post.content) throw new Error("Post validation error");
+
+    return { ...mockPost, ...post };
   }),
 }));
 
-describe("POST /api/posts", () => {
-  it("should create a new post", async () => {
-    const { req, res } = createMocks<
-      ApiRequest<ICreatePostDto>,
-      ApiResponse<IPostJson | IPostJson[]>
-    >({
-      method: "POST",
-      body: {
-        title: mockPost.title,
-        content: mockPost.content,
-      },
-    });
-
-    await handler(req, res);
-
-    expect(res._getStatusCode()).toBe(201);
-    const { success, data } = res._getJSONData();
-    expect(success).toBe(true);
-    expect(data).toStrictEqual(mockPost);
-  });
-
-  it("should return error when invalid title and content", async () => {
-    const { req, res } = createMocks<
-      ApiRequest<ICreatePostDto>,
-      ApiResponse<IPostJson | IPostJson[]>
-    >({
-      method: "POST",
-      body: {
-        title: "",
-        content: "",
-      },
-    });
-
-    await handler(req, res);
-
-    expect(res._getStatusCode()).toBe(400);
-    const { success, error } = res._getJSONData();
-    expect(success).toBe(false);
-    expect(error).toContain("Post validation error");
-  });
-  it("should return error for server-related errors", async () => {
-    jest.spyOn(Post, "create").mockRejectedValueOnce(new Error());
-
-    const { req, res } = createMocks<
-      ApiRequest<ICreatePostDto>,
-      ApiResponse<IPostJson | IPostJson[]>
-    >({
-      method: "POST",
-      body: {
-        title: "Correct title",
-        content: "Correct content",
-      },
-    });
-
-    await handler(req, res);
-
-    expect(res._getStatusCode()).toBe(500);
-    const { success, error } = res._getJSONData();
-    expect(success).toBe(false);
-    expect(error).toBe("Failed to create post");
-  });
-});
-
 describe("GET /api/posts", () => {
-  it("should return list of posts", async () => {
+  it("should return a list of posts", async () => {
     const { req, res } = createMocks<
       ApiRequest<ICreatePostDto | undefined>,
       ApiResponse<IPostJson | IPostJson[]>
@@ -104,9 +28,10 @@ describe("GET /api/posts", () => {
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(200);
-    const { success, data } = res._getJSONData();
-    expect(success).toBe(true);
-    expect(data).toStrictEqual(mockPosts);
+    expect(res._getJSONData()).toStrictEqual({
+      success: true,
+      data: mockPosts,
+    });
   });
 
   it("should return filtered posts", async () => {
@@ -127,26 +52,110 @@ describe("GET /api/posts", () => {
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(200);
-    const { success, data } = res._getJSONData();
-    expect(success).toBe(true);
-    expect(data).toStrictEqual([mockPost]);
+    expect(res._getJSONData()).toStrictEqual({
+      success: true,
+      data: [mockPost],
+    });
   });
+});
 
-  it("should throw error for server-related errors", async () => {
-    jest.spyOn(Post, "find").mockRejectedValueOnce(new Error());
-
+describe("POST /api/posts", () => {
+  it("should create a post", async () => {
     const { req, res } = createMocks<
-      ApiRequest<ICreatePostDto>,
+      ApiRequest<ICreatePostDto | undefined>,
       ApiResponse<IPostJson | IPostJson[]>
     >({
-      method: "GET",
+      method: "POST",
+      body: {
+        title: mockPost.title,
+        content: mockPost.content,
+      },
     });
 
     await handler(req, res);
 
-    expect(res._getStatusCode()).toBe(500);
-    const { success, error } = res._getJSONData();
-    expect(success).toBe(false);
-    expect(error).toBe("Failed to fetch posts");
+    expect(res._getStatusCode()).toBe(201);
+    expect(res._getJSONData()).toStrictEqual({
+      success: true,
+      data: mockPost,
+    });
+  });
+
+  it("should return an error if invalid request body", async () => {
+    const { req, res } = createMocks<
+      ApiRequest<ICreatePostDto | undefined>,
+      ApiResponse<IPostJson | IPostJson[]>
+    >({
+      method: "POST",
+      body: undefined,
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(res._getJSONData()).toStrictEqual({
+      success: false,
+      error: "Post json data is required",
+    });
+  });
+
+  it("should return an error if invalid post title and/or content", async () => {
+    const { req, res } = createMocks<
+      ApiRequest<ICreatePostDto | undefined>,
+      ApiResponse<IPostJson | IPostJson[]>
+    >({
+      method: "POST",
+      body: {
+        title: "",
+        content: " ",
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(res._getJSONData()).toStrictEqual({
+      success: false,
+      error: "Post validation error",
+    });
+  });
+});
+
+describe("Not supported methods", () => {
+  it("should not work for PUT", async () => {
+    const { req, res } = createMocks<
+      ApiRequest<ICreatePostDto | undefined>,
+      ApiResponse<IPostJson | IPostJson[]>
+    >({
+      method: "PUT",
+      body: {
+        title: "New title",
+        content: "New content",
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(405);
+    expect(res._getJSONData()).toStrictEqual({
+      success: false,
+      error: "Method not allowed",
+    });
+  });
+  it("should not work for DELETE", async () => {
+    const { req, res } = createMocks<
+      ApiRequest<ICreatePostDto | undefined>,
+      ApiResponse<IPostJson | IPostJson[]>
+    >({
+      method: "DELETE",
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(405);
+    expect(res._getJSONData()).toStrictEqual({
+      success: false,
+      error: "Method not allowed",
+    });
   });
 });

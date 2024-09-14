@@ -24,7 +24,14 @@ const PostSchema: Schema = new Schema(
 
 export default mongoose.models.Post || mongoose.model("Post", PostSchema);
 
-export type ICreatePostDto = Pick<IPost, "title" | "content">;
+export type ICreatePostDto = {
+  title: string;
+  content: string;
+};
+export type IUpdatePostDto = {
+  title?: string;
+  content?: string;
+};
 export type IPostJson = Pick<IPost, "title" | "content" | "__v"> & {
   _id: string;
   createdAt: string;

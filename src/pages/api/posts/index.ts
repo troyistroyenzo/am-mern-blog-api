@@ -1,44 +1,59 @@
 import queryString from "query-string";
+import { RootFilterQuery } from "mongoose";
 
 import { connectToDatabase } from "@/lib/mongodb";
 import Post, { ICreatePostDto, IPostJson } from "@/models/Post";
+
+const executor = {
+  GET: (
+    query: RootFilterQuery<{ title?: string; content?: string; _id?: string }>
+  ) => Post.find(query),
+  POST: (data: ICreatePostDto) => Post.create(data),
+};
 
 export default async function handler(
   req: ApiRequest<ICreatePostDto | undefined>,
   res: ApiResponse<IPostJson | IPostJson[]>
 ) {
-  const { method, url } = req;
+  const { method, url, body } = req;
 
-  await connectToDatabase();
-
-  switch (method) {
-    case "GET":
-      try {
+  try {
+    await connectToDatabase();
+  } catch (err) {
+    if (err instanceof Error) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+  try {
+    let result;
+    let statusCode;
+    switch (method) {
+      case "GET":
         const { query } = queryString.parseUrl(url || "");
-        const posts = await Post.find(query);
-        res.status(200).json({ success: true, data: posts });
-      } catch (error) {
-        res
-          .status(500)
-          .json({ success: false, error: "Failed to fetch posts" });
-      }
-      break;
-    case "POST":
-      try {
-        const post = await Post.create(req.body);
-        res.status(201).json({ success: true, data: post });
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("validation")) {
-          res.status(400).json({ success: false, error: error.message });
-        } else {
-          res
-            .status(500)
-            .json({ success: false, error: "Failed to create post" });
+        result = await executor["GET"](query);
+        statusCode = 200;
+        break;
+      case "POST":
+        if (!body || !Object.keys(body).length) {
+          throw new Error("Post json data is required");
         }
+        result = await executor["POST"](body);
+        statusCode = 201;
+        break;
+      default:
+        throw new Error("Method not allowed");
+    }
+
+    res.status(statusCode).json({ success: true, data: result });
+  } catch (err) {
+    if (err instanceof Error) {
+      let statusCode;
+      if (err.message === "Method not allowed") {
+        statusCode = 405;
+      } else {
+        statusCode = 400;
       }
-      break;
-    default:
-      res.status(405).json({ success: false, error: "Method not allowed" });
-      break;
+      res.status(statusCode).json({ success: false, error: err.message });
+    }
   }
 }

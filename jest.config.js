@@ -10,4 +10,5 @@ module.exports = {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
   modulePathIgnorePatterns: ["^(.*).mock.ts$"],
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
 };
