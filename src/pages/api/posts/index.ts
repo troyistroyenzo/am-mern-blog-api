@@ -69,6 +69,7 @@
  *               $ref: '#/components/schemas/ApiResponseError'
  * */
 
+import jwt from "jsonwebtoken";
 import queryString from "query-string";
 
 import { ApiPagination } from "types/api";
@@ -89,7 +90,33 @@ export default async function handler(
   req: ApiRequest<ICreatePostDto | undefined>,
   res: ApiResponse<IPostJson | IPaginatedPostJson>
 ) {
-  const { method, url, body } = req;
+  const { method, url, body, headers } = req;
+
+  const { authorization } = headers;
+
+  if (!authorization) {
+    res.status(401).json({ success: false, error: "Bearer token is required" });
+    return;
+  }
+
+  const authParts = authorization.split(" ");
+  const bearer = authParts[0];
+  const token = authParts[1];
+
+  if (bearer !== "Bearer" || !token) {
+    res.status(401).json({ success: false, error: "Invalid bearer token" });
+    return;
+  }
+
+  let user = null;
+  jwt.verify(token, process.env.SECRET_KEY as string, (err, decoded) => {
+    if (decoded) {
+      user = decoded;
+    }
+    if (err) {
+      res.status(401).json({ success: false, error: "Token is invalid" });
+    }
+  });
 
   try {
     await connectToDatabase();
@@ -120,6 +147,10 @@ export default async function handler(
         if (!body || !Object.keys(body).length) {
           throw new Error("Post json data is required");
         }
+        if (!user) {
+          throw new Error("User is forbidden to create a post");
+        }
+
         result = await executor["POST"](body);
         statusCode = 201;
         break;
@@ -133,6 +164,8 @@ export default async function handler(
       let statusCode;
       if (err.message === "Method not allowed") {
         statusCode = 405;
+      } else if (err.message === "User is forbidden to create post") {
+        statusCode = 403;
       } else {
         statusCode = 400;
       }
