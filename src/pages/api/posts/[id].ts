@@ -121,6 +121,8 @@
  *               $ref: '#/components/schemas/ApiResponseError'
  */
 
+import rateLimit from "@/middlewares/rateLimit";
+import authGuard from "@/middlewares/authGuard";
 import { connectToDatabase } from "@/lib/mongodb";
 import Post, { IPostJson, IUpdatePostDto } from "@/models/Post";
 
@@ -130,7 +132,7 @@ const executor = {
     Post.findByIdAndUpdate(id, data, { new: true }),
   DELETE: (id: string) => Post.findByIdAndDelete(id),
 };
-export default async function handler(
+async function handler(
   req: ApiRequest<IUpdatePostDto | undefined>,
   res: ApiResponse<IPostJson>
 ) {
@@ -184,3 +186,5 @@ export default async function handler(
     }
   }
 }
+
+export default authGuard(rateLimit(handler));
