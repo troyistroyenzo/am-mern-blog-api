@@ -26,6 +26,17 @@
  *         updatedAt:
  *           type: string
  *           format: date-time
+ *     PaginatedPost:
+ *       type: object
+ *       properties:
+ *         prevPage:
+ *           type: number
+ *         nextPage:
+ *           type: number
+ *         posts:
+ *           type: array
+ *           items:
+ *              $ref: '#/components/schemas/Post'
  *     ApiResponseSuccessPost:
  *       type: object
  *       properties:
@@ -34,16 +45,14 @@
  *           default: true
  *         data:
  *           $ref: '#/components/schemas/Post'
- *     ApiResponseSuccessPostArray:
+ *     ApiResponseSuccessPaginatedPost:
  *       type: object
  *       properties:
  *         success:
  *           type: boolean
  *           default: true
  *         data:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/Post'
+ *             $ref: '#/components/schemas/PaginatedPost'
  *     ApiResponseError:
  *       type: object
  *       properties:

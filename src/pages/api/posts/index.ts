@@ -8,23 +8,27 @@
  *     description: Returns a list of posts.
  *     operationId: listPosts
  *     parameters:
- *       - name: title
+ *       - name: limit
+ *         in: query
+ *         required: false
+ *         default: 10
+ *         schema:
+ *           type: number
+ *         description: Number of posts to return in the list
+ *       - name: page
  *         in: query
  *         required: false
  *         schema:
- *           type: string
- *       - name: content
- *         in: query
- *         required: false
- *         schema:
- *           type: string
+ *           type: number
+ *         default: 1
+ *         description: The current page of posts
  *     responses:
  *       '200':
  *         description: List of posts
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponseSuccessPostArray'
+ *               $ref: '#/components/schemas/ApiResponseSuccessPaginatedPost'
  *       '500':
  *         description: Internal server error
  *         content:
@@ -66,21 +70,24 @@
  * */
 
 import queryString from "query-string";
-import { RootFilterQuery } from "mongoose";
 
+import { ApiPagination } from "types/api";
 import { connectToDatabase } from "@/lib/mongodb";
-import Post, { ICreatePostDto, IPostJson } from "@/models/Post";
+import Post, {
+  ICreatePostDto,
+  IPaginatedPostJson,
+  IPostJson,
+} from "@/models/Post";
 
 const executor = {
-  GET: (
-    query: RootFilterQuery<{ title?: string; content?: string; _id?: string }>
-  ) => Post.find(query),
+  GET: ({ limit, page }: ApiPagination) =>
+    Post.find({}, undefined, { limit: limit, skip: (page - 1) * limit }),
   POST: (data: ICreatePostDto) => Post.create(data),
 };
 
 export default async function handler(
   req: ApiRequest<ICreatePostDto | undefined>,
-  res: ApiResponse<IPostJson | IPostJson[]>
+  res: ApiResponse<IPostJson | IPaginatedPostJson>
 ) {
   const { method, url, body } = req;
 
@@ -96,8 +103,17 @@ export default async function handler(
     let statusCode;
     switch (method) {
       case "GET":
-        const { query } = queryString.parseUrl(url || "");
-        result = await executor["GET"](query);
+        const { query } = queryString.parseUrl(url || "", {
+          parseNumbers: true,
+        });
+        const pagination: ApiPagination = { limit: 10, page: 1, ...query };
+        const posts = await executor["GET"](pagination);
+        result = {
+          prevPage: pagination.page === 1 ? null : pagination.page - 1,
+          nextPage:
+            posts.length < pagination.limit ? null : pagination.page + 1,
+          posts,
+        };
         statusCode = 200;
         break;
       case "POST":

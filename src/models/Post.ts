@@ -37,3 +37,8 @@ export type IPostJson = Pick<IPost, "title" | "content" | "__v"> & {
   createdAt: string;
   updatedAt: string;
 };
+export type IPaginatedPostJson = {
+  nextPage: number | null;
+  prevPage: number | null;
+  posts: IPostJson[];
+};

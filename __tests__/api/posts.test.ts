@@ -3,12 +3,10 @@ import { createMocks } from "node-mocks-http";
 
 import handler from "@/pages/api/posts";
 import { mockPost, mockPosts } from "@/mocks/posts";
-import { ICreatePostDto, IPostJson } from "@/models/Post";
+import { ICreatePostDto, IPaginatedPostJson, IPostJson } from "@/models/Post";
 
 jest.mock("@/models/Post", () => ({
-  find: jest.fn(({ title }) =>
-    title ? mockPosts.filter((post) => post.title === title) : mockPosts
-  ),
+  find: jest.fn(() => mockPosts),
   create: jest.fn((post) => {
     if (!post.title || !post.content) throw new Error("Post validation error");
 
@@ -20,7 +18,7 @@ describe("GET /api/posts", () => {
   it("should return a list of posts", async () => {
     const { req, res } = createMocks<
       ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPostJson[]>
+      ApiResponse<IPostJson | IPaginatedPostJson>
     >({
       method: "GET",
     });
@@ -30,31 +28,42 @@ describe("GET /api/posts", () => {
     expect(res._getStatusCode()).toBe(200);
     expect(res._getJSONData()).toStrictEqual({
       success: true,
-      data: mockPosts,
+      data: {
+        prevPage: null,
+        nextPage: null,
+        posts: mockPosts,
+      },
     });
   });
 
-  it("should return filtered posts", async () => {
+  it("should return paginated posts", async () => {
     jest
       .spyOn(queryString, "parseUrl")
-      .mockReturnValueOnce({ url: "", query: { title: mockPost.title } });
+      //@ts-ignore
+      .mockReturnValueOnce({ url: "", query: { limit: 2, page: 1 } });
 
     const { req, res } = createMocks<
       ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPostJson[]>
+      ApiResponse<IPostJson | IPaginatedPostJson>
     >({
       method: "GET",
       query: {
-        title: mockPost.title,
+        limit: 2,
+        page: 1,
       },
     });
 
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(200);
+    console.log(res._getJSONData());
     expect(res._getJSONData()).toStrictEqual({
       success: true,
-      data: [mockPost],
+      data: {
+        prevPage: null,
+        nextPage: 2,
+        posts: mockPosts,
+      },
     });
   });
 });
@@ -63,7 +72,7 @@ describe("POST /api/posts", () => {
   it("should create a post", async () => {
     const { req, res } = createMocks<
       ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPostJson[]>
+      ApiResponse<IPostJson | IPaginatedPostJson>
     >({
       method: "POST",
       body: {
@@ -84,7 +93,7 @@ describe("POST /api/posts", () => {
   it("should return an error if invalid request body", async () => {
     const { req, res } = createMocks<
       ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPostJson[]>
+      ApiResponse<IPostJson | IPaginatedPostJson>
     >({
       method: "POST",
       body: undefined,
@@ -102,7 +111,7 @@ describe("POST /api/posts", () => {
   it("should return an error if invalid post title and/or content", async () => {
     const { req, res } = createMocks<
       ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPostJson[]>
+      ApiResponse<IPostJson | IPaginatedPostJson>
     >({
       method: "POST",
       body: {
@@ -125,7 +134,7 @@ describe("Not supported methods", () => {
   it("should not work for PUT", async () => {
     const { req, res } = createMocks<
       ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPostJson[]>
+      ApiResponse<IPostJson | IPaginatedPostJson>
     >({
       method: "PUT",
       body: {
@@ -145,7 +154,7 @@ describe("Not supported methods", () => {
   it("should not work for DELETE", async () => {
     const { req, res } = createMocks<
       ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPostJson[]>
+      ApiResponse<IPostJson | IPaginatedPostJson>
     >({
       method: "DELETE",
     });
