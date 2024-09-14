@@ -1,42 +1,36 @@
-import { mongo } from "mongoose";
 import queryString from "query-string";
 import { createMocks } from "node-mocks-http";
 
 import handler from "@/pages/api/posts";
+import { mockPost, mockPosts } from "@/mocks/posts";
 import Post, { ICreatePostDto, IPostJson } from "@/models/Post";
-
-const mockPosts = [
-  {
-    title: "First post",
-    content: "Sample content",
-    _id: new mongo.ObjectId().toString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    title: "Second post",
-    content: "Sample content",
-    _id: new mongo.ObjectId().toString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-const mockPost = mockPosts[0];
 
 jest.mock("@/lib/mongodb", () => ({
   connectToDatabase: jest.fn(),
 }));
 
 jest.mock("query-string", () => ({
-  parseUrl: jest.fn(),
+  parseUrl: jest.fn(() => ({ url: "", query: {} })),
+}));
+
+jest.mock("@/models/Post", () => ({
+  find: jest.fn(({ title }) => {
+    if (title) {
+      return mockPosts.filter((post) => post.title === title);
+    } else {
+      return mockPosts;
+    }
+  }),
+  create: jest.fn(({ title, content }) => {
+    if (!title || !content) {
+      throw new Error("Post validation error: title: ... , content: ...");
+    }
+    return { ...mockPost, title, content };
+  }),
 }));
 
 describe("POST /api/posts", () => {
   it("should create a new post", async () => {
-    //@ts-ignore
-    jest.spyOn(Post, "create").mockReturnValueOnce(mockPost);
-
     const { req, res } = createMocks<
       ApiRequest<ICreatePostDto>,
       ApiResponse<IPostJson | IPostJson[]>
@@ -56,10 +50,7 @@ describe("POST /api/posts", () => {
     expect(data).toStrictEqual(mockPost);
   });
 
-  it("should throw error when invalid title and content", async () => {
-    const err = new Error("Post validation error: title: ... , content: ...");
-    jest.spyOn(Post, "create").mockRejectedValueOnce(err);
-
+  it("should return error when invalid title and content", async () => {
     const { req, res } = createMocks<
       ApiRequest<ICreatePostDto>,
       ApiResponse<IPostJson | IPostJson[]>
@@ -76,9 +67,9 @@ describe("POST /api/posts", () => {
     expect(res._getStatusCode()).toBe(400);
     const { success, error } = res._getJSONData();
     expect(success).toBe(false);
-    expect(error).toBe(err.message);
+    expect(error).toContain("Post validation error");
   });
-  it("should throw error for server-related errors", async () => {
+  it("should return error for server-related errors", async () => {
     jest.spyOn(Post, "create").mockRejectedValueOnce(new Error());
 
     const { req, res } = createMocks<
@@ -103,11 +94,6 @@ describe("POST /api/posts", () => {
 
 describe("GET /api/posts", () => {
   it("should return list of posts", async () => {
-    jest.spyOn(Post, "find").mockResolvedValueOnce(mockPosts);
-    jest
-      .spyOn(queryString, "parseUrl")
-      .mockReturnValueOnce({ url: "", query: {} });
-
     const { req, res } = createMocks<
       ApiRequest<ICreatePostDto | undefined>,
       ApiResponse<IPostJson | IPostJson[]>
@@ -123,17 +109,10 @@ describe("GET /api/posts", () => {
     expect(data).toStrictEqual(mockPosts);
   });
 
-  it("should return filter posts", async () => {
-    jest
-      .spyOn(Post, "find")
-      //@ts-ignore
-      .mockImplementationOnce(({ title }) => {
-        //@ts-ignore
-        return mockPosts.filter((post) => post.title === title);
-      });
+  it("should return filtered posts", async () => {
     jest
       .spyOn(queryString, "parseUrl")
-      .mockReturnValueOnce({ url: "", query: { title: "First post" } });
+      .mockReturnValueOnce({ url: "", query: { title: mockPost.title } });
 
     const { req, res } = createMocks<
       ApiRequest<ICreatePostDto | undefined>,
@@ -141,7 +120,7 @@ describe("GET /api/posts", () => {
     >({
       method: "GET",
       query: {
-        title: mockPosts[0].title,
+        title: mockPost.title,
       },
     });
 
@@ -150,7 +129,7 @@ describe("GET /api/posts", () => {
     expect(res._getStatusCode()).toBe(200);
     const { success, data } = res._getJSONData();
     expect(success).toBe(true);
-    expect(data).toStrictEqual([mockPosts[0]]);
+    expect(data).toStrictEqual([mockPost]);
   });
 
   it("should throw error for server-related errors", async () => {
