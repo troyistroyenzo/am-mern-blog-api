@@ -1,22 +1,25 @@
+import queryString from "query-string";
+
 import { connectToDatabase } from "@/lib/mongodb";
-import Post, { ICreatePostDto, IPost, IPostJson } from "@/models/Post";
+import Post, { ICreatePostDto, IPostJson } from "@/models/Post";
 
 export default async function handler(
-  req: ApiRequest<ICreatePostDto>,
-  res: ApiResponse<IPostJson | any>
+  req: ApiRequest<ICreatePostDto | undefined>,
+  res: ApiResponse<IPostJson | IPostJson[]>
 ) {
-  const { method } = req;
+  const { method, url } = req;
 
   await connectToDatabase();
 
   switch (method) {
     case "GET":
       try {
-        const posts = await Post.find({});
+        const { query } = queryString.parseUrl(url || "");
+        const posts = await Post.find(query);
         res.status(200).json({ success: true, data: posts });
       } catch (error) {
         res
-          .status(400)
+          .status(500)
           .json({ success: false, error: "Failed to fetch posts" });
       }
       break;
