@@ -1,45 +1,42 @@
-import jwt from "jsonwebtoken";
 import { NextApiRequest, NextApiResponse } from "next";
 
-export default function authGuard(
-  handler: (req: NextApiRequest, res: NextApiResponse) => void
-) {
-  return (req: ApiRequest<undefined>, res: ApiResponse<any>) => {
-    const { authorization } = req.headers;
+import { verifyToken } from "@/lib/auth";
 
-    if (!authorization) {
-      res
-        .status(401)
-        .json({ success: false, error: "Bearer token is required" });
-      return;
-    }
+export type Data = {
+  success: false;
+  error: string;
+};
 
-    const authParts = authorization.split(" ");
-    const bearer = authParts[0];
-    const token = authParts[1];
+const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
+  const { authorization } = req.headers;
 
-    if (bearer !== "Bearer" || !token) {
-      res.status(401).json({ success: false, error: "Invalid bearer token" });
-      return;
-    }
+  // ensure authorization is present
+  if (!authorization) {
+    res
+      .status(401)
+      .json({ success: false, error: "`Authorization` header is required" });
+    return;
+  }
 
-    let user = null;
-    jwt.verify(token, process.env.SECRET_KEY as string, (err, decoded) => {
-      if (decoded) {
-        user = decoded;
-      }
-      if (err) {
-        res.status(401).json({ success: false, error: "Token is invalid" });
-      }
-    });
+  const authParts = authorization.split(" ");
+  const bearer = authParts[0];
+  const token = authParts[1];
 
-    if (!user) {
-      res
-        .status(401)
-        .json({ success: false, error: "User is not authenticated" });
-      return;
-    }
+  // ensure correct token format
+  if (bearer !== "Bearer" || !token) {
+    res.status(401).json({ success: false, error: "Invalid token format" });
+    return;
+  }
 
-    return handler(req, res);
-  };
-}
+  // ensure token is valid
+  try {
+    verifyToken(token);
+  } catch (error) {
+    res
+      .status(401)
+      .json({ success: false, error: "Token is invalid or expired" });
+    return;
+  }
+};
+
+export default handler;

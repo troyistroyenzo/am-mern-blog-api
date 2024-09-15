@@ -1,51 +1,53 @@
-import queryString from "query-string";
 import { createMocks } from "node-mocks-http";
+import { NextApiRequest, NextApiResponse } from "next";
 
-import handler from "@/pages/api/posts";
-import { mockPost, mockPosts } from "@/mocks/posts";
-import { ICreatePostDto, IPaginatedPostJson, IPostJson } from "@/models/Post";
+import { IPostDto, IUpdatePostDto } from "@/models/Post";
+import handler, { Data } from "@/pages/api/posts/[[...id]]";
+
+const mockPosts: IPostDto[] = [
+  {
+    _id: "someId",
+    title: "Sample title",
+    content: "Sample content",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    __v: 0,
+  },
+];
+
+const mockPost: IPostDto = {
+  _id: "someId2",
+  title: "Sample title 2",
+  content: "Sample content 2",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  __v: 0,
+};
 
 jest.mock("@/models/Post", () => ({
-  find: jest.fn(() => mockPosts),
-  create: jest.fn((post) => {
-    if (!post.title || !post.content) throw new Error("Post validation error");
-
-    return { ...mockPost, ...post };
+  find: jest.fn(() => [mockPost]),
+  create: jest.fn(() => mockPost),
+  findById: jest.fn((id: string) =>
+    [mockPost, ...mockPosts].find((post) => post._id === id)
+  ),
+  findByIdAndUpdate: jest.fn((id: string, data: IUpdatePostDto) => {
+    const post = [mockPost, ...mockPosts].find((post) => post._id === id);
+    if (post)
+      return {
+        ...post,
+        ...data,
+      };
+    return null;
   }),
+  findByIdAndDelete: jest.fn((id: string) =>
+    [mockPost, ...mockPosts].find((post) => post._id === id)
+  ),
 }));
 
-describe("GET /api/posts", () => {
-  it("should return a list of posts", async () => {
-    const { req, res } = createMocks<
-      ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPaginatedPostJson>
-    >({
-      method: "GET",
-    });
-
-    await handler(req, res);
-
-    expect(res._getStatusCode()).toBe(200);
-    expect(res._getJSONData()).toStrictEqual({
-      success: true,
-      data: {
-        prevPage: null,
-        nextPage: null,
-        posts: mockPosts,
-      },
-    });
-  });
-
-  it("should return paginated posts", async () => {
-    jest
-      .spyOn(queryString, "parseUrl")
-      //@ts-ignore
-      .mockReturnValueOnce({ url: "", query: { limit: 2, page: 1 } });
-
-    const { req, res } = createMocks<
-      ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPaginatedPostJson>
-    >({
+describe("/api/posts", () => {
+  it("should return the lists of posts as pagination", async () => {
+    // setup
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse<Data>>({
       method: "GET",
       query: {
         limit: 2,
@@ -53,27 +55,32 @@ describe("GET /api/posts", () => {
       },
     });
 
+    // execute
     await handler(req, res);
 
-    expect(res._getStatusCode()).toBe(200);
-    console.log(res._getJSONData());
+    // assert
+    expect(res._getStatusCode()).toStrictEqual(200);
     expect(res._getJSONData()).toStrictEqual({
       success: true,
       data: {
-        prevPage: null,
-        nextPage: 2,
-        posts: mockPosts,
+        prevPage: 0,
+        currPage: 1,
+        nextPage: null,
+        count: 1,
+        items: [
+          {
+            ...mockPost,
+            createdAt: mockPost.createdAt.toISOString(),
+            updatedAt: mockPost.updatedAt.toISOString(),
+          },
+        ],
       },
     });
   });
-});
 
-describe("POST /api/posts", () => {
-  it("should create a post", async () => {
-    const { req, res } = createMocks<
-      ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPaginatedPostJson>
-    >({
+  it("should create a new post", async () => {
+    // setup
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse<Data>>({
       method: "POST",
       body: {
         title: mockPost.title,
@@ -81,90 +88,96 @@ describe("POST /api/posts", () => {
       },
     });
 
+    // execute
     await handler(req, res);
 
+    // assert
     expect(res._getStatusCode()).toBe(201);
     expect(res._getJSONData()).toStrictEqual({
       success: true,
-      data: mockPost,
+      data: {
+        ...mockPost,
+        createdAt: mockPost.createdAt.toISOString(),
+        updatedAt: mockPost.updatedAt.toISOString(),
+      },
     });
   });
 
-  it("should return an error if invalid request body", async () => {
-    const { req, res } = createMocks<
-      ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPaginatedPostJson>
-    >({
-      method: "POST",
-      body: undefined,
-    });
-
-    await handler(req, res);
-
-    expect(res._getStatusCode()).toBe(400);
-    expect(res._getJSONData()).toStrictEqual({
-      success: false,
-      error: "Post json data is required",
-    });
-  });
-
-  it("should return an error if invalid post title and/or content", async () => {
-    const { req, res } = createMocks<
-      ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPaginatedPostJson>
-    >({
-      method: "POST",
-      body: {
-        title: "",
-        content: " ",
+  it("should return the post by id", async () => {
+    // setup
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse<Data>>({
+      method: "GET",
+      query: {
+        id: mockPost._id,
       },
     });
 
+    // execute
     await handler(req, res);
 
-    expect(res._getStatusCode()).toBe(400);
+    // expect
+    expect(res._getStatusCode()).toStrictEqual(200);
     expect(res._getJSONData()).toStrictEqual({
-      success: false,
-      error: "Post validation error",
+      success: true,
+      data: {
+        ...mockPost,
+        createdAt: mockPost.createdAt.toISOString(),
+        updatedAt: mockPost.updatedAt.toISOString(),
+      },
     });
   });
-});
 
-describe("Not supported methods", () => {
-  it("should not work for PUT", async () => {
-    const { req, res } = createMocks<
-      ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPaginatedPostJson>
-    >({
+  it("should update an existing post", async () => {
+    // setup
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse<Data>>({
       method: "PUT",
+      query: {
+        id: mockPost._id,
+      },
       body: {
-        title: "New title",
-        content: "New content",
+        title: "Updated title",
+        content: "Updated content",
       },
     });
 
+    // execute
     await handler(req, res);
 
-    expect(res._getStatusCode()).toBe(405);
+    // expect
+    expect(res._getStatusCode()).toStrictEqual(200);
     expect(res._getJSONData()).toStrictEqual({
-      success: false,
-      error: "Method not allowed",
+      success: true,
+      data: {
+        ...mockPost,
+        createdAt: mockPost.createdAt.toISOString(),
+        updatedAt: mockPost.updatedAt.toISOString(),
+        title: "Updated title",
+        content: "Updated content",
+      },
     });
   });
-  it("should not work for DELETE", async () => {
-    const { req, res } = createMocks<
-      ApiRequest<ICreatePostDto | undefined>,
-      ApiResponse<IPostJson | IPaginatedPostJson>
-    >({
+
+  it("should delete an existing post", async () => {
+    // setup
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse<Data>>({
       method: "DELETE",
+      query: {
+        id: mockPost._id,
+      },
     });
 
+    // execute
     await handler(req, res);
 
-    expect(res._getStatusCode()).toBe(405);
+    // expect
+    expect(res._getStatusCode()).toStrictEqual(200);
     expect(res._getJSONData()).toStrictEqual({
-      success: false,
-      error: "Method not allowed",
+      success: true,
+      data: {
+        ...mockPost,
+        createdAt: mockPost.createdAt.toISOString(),
+        updatedAt: mockPost.updatedAt.toISOString(),
+      },
     });
   });
 });

@@ -24,21 +24,16 @@ const PostSchema: Schema = new Schema(
 
 export default mongoose.models.Post || mongoose.model("Post", PostSchema);
 
-export type ICreatePostDto = {
-  title: string;
-  content: string;
-};
-export type IUpdatePostDto = {
-  title?: string;
-  content?: string;
-};
-export type IPostJson = Pick<IPost, "title" | "content" | "__v"> & {
-  _id: string;
-  createdAt: string;
-  updatedAt: string;
-};
-export type IPaginatedPostJson = {
-  nextPage: number | null;
+export type IPostDto = Pick<
+  IPost,
+  "_id" | "__v" | "title" | "content" | "createdAt" | "updatedAt"
+>;
+export type IUpdatePostDto = Pick<IPostDto, "title" | "content">;
+export type ICreatePostDto = IUpdatePostDto;
+export type IPaginatedPostsDto = {
   prevPage: number | null;
-  posts: IPostJson[];
+  nextPage: number | null;
+  currPage: number | null;
+  count: number;
+  items: IPostDto[];
 };

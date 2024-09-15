@@ -9,6 +9,6 @@ module.exports = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
-  modulePathIgnorePatterns: ["^(.*).mock.ts$"],
-  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+  modulePathIgnorePatterns: ["<rootDir>/__tests__/setup.ts"],
+  setupFilesAfterEnv: ["<rootDir>/__tests__/setup.ts"],
 };
