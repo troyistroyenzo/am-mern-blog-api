@@ -110,6 +110,7 @@ Good luck with your implementation! We look forward to seeing your solution.
 1. Please update your `.env.local` based on the latest `.env.local.example`. I added `SECRET_KEY` for the authentication system.
 2. Run `npm i` to install additional packages.
 3. Run the server `npm run dev`.
+4. Run the test `npm test`.
 
 To quickly see my output, run the server and access `http://localhost:3000/api-docs`.
 
