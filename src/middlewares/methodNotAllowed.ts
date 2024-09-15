@@ -13,6 +13,7 @@ const handler =
   async () => {
     const { method } = req;
 
+    // only allowed specified methods
     if (!method || !allowedMethods.includes(method)) {
       res.status(405).json({ success: false, error: "Method not allowed" });
       return;

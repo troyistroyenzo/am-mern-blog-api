@@ -27,6 +27,7 @@ const handlePost = async (
       throw new Error("Passwords do not match");
     }
 
+    // make sure password is hashed
     const passwordHash = await hashPassword(password);
     const user = await User.create({ username, passwordHash });
 
@@ -35,6 +36,8 @@ const handlePost = async (
       _id: user._id,
       __v: user.__v,
     };
+
+    // generate access token
     const token = generateToken<IUserDto>(userDto);
 
     res.status(201).json({
@@ -60,6 +63,7 @@ const handleLogin = async (
       throw new Error("User does not exists");
     }
 
+    // check if the user has correct password against the db
     const isVerified = await verifyPassword(user.passwordHash, password);
     if (!isVerified) {
       throw new Error("Incorrect password");
@@ -70,6 +74,8 @@ const handleLogin = async (
       _id: user._id,
       __v: user.__v,
     };
+
+    // generate token
     const token = generateToken<IUserDto>(userDto);
 
     res.status(200).json({
@@ -84,9 +90,11 @@ const handleLogin = async (
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
+  // apply rate limit and method not allowed
   await rateLimit(req, res);
   await methodNotAllowed(req, res, { allowedMethods: ["POST"] })();
 
+  // connect to db
   try {
     await connectToDatabase();
   } catch (error) {
@@ -97,11 +105,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
 
   const { id } = req.query;
 
+  // if no id in the path, then simply do POST (create)
   if (!id) {
     await handlePost(req, res);
   } else {
     const path = typeof id === "string" ? id : id[0];
-
+    // do login if login in the path
     switch (path) {
       case "login":
         await handleLogin(req, res);

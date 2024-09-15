@@ -127,12 +127,14 @@ const handleDelete = async (
 const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
   const { method, query } = req;
 
+  // apply rate limit, auth guard, and method not allowed
   await rateLimit(req, res);
   await authGuard(req, res);
   await methodNotAllowed(req, res, {
     allowedMethods: ["GET", "POST", "PUT", "DELETE"],
   })();
 
+  // connect to database
   try {
     await connectToDatabase();
   } catch (error) {
@@ -143,6 +145,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
 
   const { id } = query;
 
+  // if not id in the path, simply do GET (list) and POST
   if (!id) {
     switch (method) {
       case "GET":
@@ -152,6 +155,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
         await handlePost(req, res);
         break;
     }
+    // else extract the id and apply GET, PUT, or DELETE
   } else {
     const postId = typeof id === "string" ? id : id[0];
 

@@ -102,3 +102,24 @@ When you've completed the challenge:
 - Documentation clarity
 
 Good luck with your implementation! We look forward to seeing your solution.
+
+## Applicant's Notes
+
+### Getting started
+
+1. Please update your `.env.local` based on the latest `.env.local.example`. I added `SECRET_KEY` for the authentication system.
+2. Run `npm i` to install additional packages.
+3. Run the server `npm run dev`.
+
+To quickly see my output, run the server and access `http://localhost:3000/api-docs`.
+
+### Implemented Tasks
+
+- [x] Implemented RESTful endpoints for Post resources (GET, POST, PUT, DELETE)
+- [x] Implemenetd User creation and signing
+- [x] Created data-transfer object types based on Mongoose models
+- [x] Added unit tests for Post and User resources
+- [x] Integrated Swagger UI using OpenAPI specs to generate API documentation
+- [x] Implemented pagination for Post GET (list) endpoint
+- [x] Implemented simple authentication system using access tokens
+- [x] Implemented simple rate limiting system (inspired)
