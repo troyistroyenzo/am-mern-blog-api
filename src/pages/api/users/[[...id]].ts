@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiRequestWithBody, NextApiResponse } from "next";
 
+import rateLimit from "@/middlewares/rateLimit";
 import { connectToDatabase } from "@/lib/mongodb";
 import methodNotAllowed from "@/middlewares/methodNotAllowed";
 import { generateToken, hashPassword, verifyPassword } from "@/lib/auth";
@@ -83,6 +84,7 @@ const handleLogin = async (
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
+  await rateLimit(req, res);
   await methodNotAllowed(req, res, { allowedMethods: ["POST"] })();
 
   try {

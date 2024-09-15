@@ -44,8 +44,6 @@ jest.mock("@/models/Post", () => ({
   ),
 }));
 
-jest.mock("@/middlewares/authGuard", () => jest.fn());
-
 describe("/api/posts", () => {
   it("should return the lists of posts as pagination", async () => {
     // setup

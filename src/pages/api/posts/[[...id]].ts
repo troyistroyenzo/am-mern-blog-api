@@ -4,6 +4,7 @@ import type {
   NextApiResponse,
 } from "next";
 
+import rateLimit from "@/middlewares/rateLimit";
 import authGuard from "@/middlewares/authGuard";
 import { connectToDatabase } from "@/lib/mongodb";
 import methodNotAllowed from "@/middlewares/methodNotAllowed";
@@ -111,6 +112,7 @@ const handleDelete = async (
 const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
   const { method, query } = req;
 
+  await rateLimit(req, res);
   await authGuard(req, res);
   await methodNotAllowed(req, res, {
     allowedMethods: ["GET", "POST", "PUT", "DELETE"],
