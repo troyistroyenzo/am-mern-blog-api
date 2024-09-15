@@ -57,10 +57,15 @@ const handleGetById = async (
 ) => {
   try {
     const post = await Post.findById(id);
+    if (!post) {
+      throw new Error("Post does not exists", { cause: 404 });
+    }
     res.status(200).json({ success: true, data: post });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(400).json({ success: false, error: error.message });
+      res
+        .status(Number(error.cause) || 400)
+        .json({ success: false, error: error.message });
     }
   }
 };
@@ -86,10 +91,15 @@ const handlePut = async (
 ) => {
   try {
     const post = await Post.findByIdAndUpdate(id, req.body, { new: true });
+    if (!post) {
+      throw new Error("Post does not exists", { cause: 404 });
+    }
     res.status(200).json({ success: true, data: post });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(400).json({ success: false, error: error.message });
+      res
+        .status(Number(error.cause) || 400)
+        .json({ success: false, error: error.message });
     }
   }
 };
@@ -101,10 +111,15 @@ const handleDelete = async (
 ) => {
   try {
     const post = await Post.findByIdAndDelete(id);
+    if (!post) {
+      throw new Error("Post does not exists", { cause: 404 });
+    }
     res.status(200).json({ success: true, data: post });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(400).json({ success: false, error: error.message });
+      res
+        .status(Number(error.cause) || 400)
+        .json({ success: false, error: error.message });
     }
   }
 };
