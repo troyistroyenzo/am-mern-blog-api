@@ -1,14 +1,19 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { connectToDatabase } from "@/lib/mongodb";
-import Post, { IPost } from "@/models/Post";
+import type {
+  NextApiRequest,
+  NextApiRequestWithBody,
+  NextApiResponse,
+} from "next";
 
-type Data = {
+import { connectToDatabase } from "@/lib/mongodb";
+import Post, { ICreatePostDto, IPostDto, IUpdatePostDto } from "@/models/Post";
+
+export type Data = {
   success: boolean;
-  data?: IPost | IPost[];
+  data?: IPostDto | IPostDto[];
   error?: string;
 };
 
-const handleGet = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
+const handleGet = async (_: NextApiRequest, res: NextApiResponse<Data>) => {
   try {
     const posts = await Post.find({});
     res.status(200).json({ success: true, data: posts });
@@ -34,7 +39,10 @@ const handleGetById = async (
   }
 };
 
-const handlePost = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
+const handlePost = async (
+  req: NextApiRequestWithBody<ICreatePostDto>,
+  res: NextApiResponse<Data>
+) => {
   try {
     const post = await Post.create(req.body);
     res.status(201).json({ success: true, data: post });
@@ -47,7 +55,7 @@ const handlePost = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
 
 const handlePut = async (
   id: string,
-  req: NextApiRequest,
+  req: NextApiRequestWithBody<IUpdatePostDto>,
   res: NextApiResponse<Data>
 ) => {
   try {
@@ -103,7 +111,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
         break;
     }
   } else {
-    const postId = id[0];
+    const postId = typeof id === "string" ? id : id[0];
 
     switch (method) {
       case "GET":
