@@ -18,9 +18,11 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.6.1",
     "next": "14.2.9",
+    "next-swagger-doc": "^0.4.0",
     "node-mocks-http": "^1.16.0",
     "react": "^18",
     "react-dom": "^18",
+    "swagger-ui-react": "^5.17.14",
     "ts-jest": "^29.2.5"
   },
   "devDependencies": {
@@ -29,6 +31,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/swagger-ui-react": "^4.18.3",
     "eslint": "^8",
     "eslint-config-next": "14.2.9",
     "typescript": "^5"
