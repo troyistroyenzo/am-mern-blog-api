@@ -6,6 +6,7 @@ import type {
 
 import authGuard from "@/middlewares/authGuard";
 import { connectToDatabase } from "@/lib/mongodb";
+import methodNotAllowed from "@/middlewares/methodNotAllowed";
 import Post, {
   ICreatePostDto,
   IPaginatedPostsDto,
@@ -111,6 +112,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
   const { method, query } = req;
 
   await authGuard(req, res);
+  await methodNotAllowed(req, res, {
+    allowedMethods: ["GET", "POST", "PUT", "DELETE"],
+  })();
 
   try {
     await connectToDatabase();
@@ -118,11 +122,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
     if (error instanceof Error) {
       res.status(500).json({ success: false, error: error.message });
     }
-  }
-
-  const allowedMethods = ["GET", "POST", "PUT", "DELETE"];
-  if (!method || !allowedMethods.includes(method)) {
-    res.status(405).json({ success: false, error: "Method not allowed" });
   }
 
   const { id } = query;
