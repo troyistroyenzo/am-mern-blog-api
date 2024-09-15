@@ -24,10 +24,6 @@ const mockPost: IPostDto = {
   __v: 0,
 };
 
-jest.mock("@/lib/mongodb", () => ({
-  connectToDatabase: jest.fn(),
-}));
-
 jest.mock("@/models/Post", () => ({
   find: jest.fn(() => [mockPost]),
   create: jest.fn(() => mockPost),
@@ -47,6 +43,8 @@ jest.mock("@/models/Post", () => ({
     [mockPost, ...mockPosts].find((post) => post._id === id)
   ),
 }));
+
+jest.mock("@/middlewares/authGuard", () => jest.fn());
 
 describe("/api/posts", () => {
   it("should return the lists of posts as pagination", async () => {

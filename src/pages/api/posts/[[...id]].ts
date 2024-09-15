@@ -4,6 +4,7 @@ import type {
   NextApiResponse,
 } from "next";
 
+import authGuard from "@/middlewares/authGuard";
 import { connectToDatabase } from "@/lib/mongodb";
 import Post, {
   ICreatePostDto,
@@ -108,6 +109,8 @@ const handleDelete = async (
 
 const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
   const { method, query } = req;
+
+  await authGuard(req, res);
 
   try {
     await connectToDatabase();
