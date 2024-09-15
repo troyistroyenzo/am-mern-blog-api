@@ -5,18 +5,41 @@ import type {
 } from "next";
 
 import { connectToDatabase } from "@/lib/mongodb";
-import Post, { ICreatePostDto, IPostDto, IUpdatePostDto } from "@/models/Post";
+import Post, {
+  ICreatePostDto,
+  IPaginatedPostsDto,
+  IPostDto,
+  IUpdatePostDto,
+} from "@/models/Post";
 
 export type Data = {
   success: boolean;
-  data?: IPostDto | IPostDto[];
+  data?: IPostDto | IPaginatedPostsDto;
   error?: string;
 };
 
-const handleGet = async (_: NextApiRequest, res: NextApiResponse<Data>) => {
+const handleGet = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
   try {
-    const posts = await Post.find({});
-    res.status(200).json({ success: true, data: posts });
+    const { limit, page } = req.query;
+    const limitQuery = Number(limit || 10);
+    const pageQuery = Number(page || 0);
+
+    const posts = await Post.find(
+      {},
+      {},
+      { limit: limitQuery, skip: pageQuery * limitQuery }
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        items: posts,
+        prevPage: pageQuery === 0 ? null : pageQuery - 1,
+        nextPage: posts.length < limitQuery ? null : pageQuery + 1,
+        currPage: pageQuery,
+        count: posts.length,
+      },
+    });
   } catch (error) {
     if (error instanceof Error) {
       res.status(400).json({ success: false, error: error.message });

@@ -29,7 +29,7 @@ jest.mock("@/lib/mongodb", () => ({
 }));
 
 jest.mock("@/models/Post", () => ({
-  find: jest.fn(() => mockPosts),
+  find: jest.fn(() => [mockPost]),
   create: jest.fn(() => mockPost),
   findById: jest.fn((id: string) =>
     [mockPost, ...mockPosts].find((post) => post._id === id)
@@ -49,10 +49,14 @@ jest.mock("@/models/Post", () => ({
 }));
 
 describe("/api/posts", () => {
-  it("should return the lists of posts", async () => {
+  it("should return the lists of posts as pagination", async () => {
     // setup
     const { req, res } = createMocks<NextApiRequest, NextApiResponse<Data>>({
       method: "GET",
+      query: {
+        limit: 2,
+        page: 1,
+      },
     });
 
     // execute
@@ -62,11 +66,19 @@ describe("/api/posts", () => {
     expect(res._getStatusCode()).toStrictEqual(200);
     expect(res._getJSONData()).toStrictEqual({
       success: true,
-      data: mockPosts.map((post) => ({
-        ...post,
-        createdAt: post.createdAt.toISOString(),
-        updatedAt: post.updatedAt.toISOString(),
-      })),
+      data: {
+        prevPage: 0,
+        currPage: 1,
+        nextPage: null,
+        count: 1,
+        items: [
+          {
+            ...mockPost,
+            createdAt: mockPost.createdAt.toISOString(),
+            updatedAt: mockPost.updatedAt.toISOString(),
+          },
+        ],
+      },
     });
   });
 

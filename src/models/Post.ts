@@ -30,3 +30,10 @@ export type IPostDto = Pick<
 >;
 export type IUpdatePostDto = Pick<IPostDto, "title" | "content">;
 export type ICreatePostDto = IUpdatePostDto;
+export type IPaginatedPostsDto = {
+  prevPage: number | null;
+  nextPage: number | null;
+  currPage: number | null;
+  count: number;
+  items: IPostDto[];
+};
